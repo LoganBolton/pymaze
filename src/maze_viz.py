@@ -30,6 +30,8 @@ class Visualizer(object):
         self.squares = dict()
         self.media_filename = media_filename
         self.show_text = show_text
+        self.wall_linewidth = 40
+        self.outline_linewidth = 40
 
     def set_media_filename(self, filename):
         """Sets the filename of the media
@@ -59,23 +61,65 @@ class Visualizer(object):
 
     def plot_walls(self):
         """ Plots the walls of a maze. This is used when generating the maze image"""
+        pad_x, pad_y = self._points_to_data_units(self.outline_linewidth / 2.0)
+
+        if pad_x > 0 or pad_y > 0:
+            frame = plt.Rectangle((-pad_x, -pad_y), self.width + 2 * pad_x, self.height + 2 * pad_y,
+                                  facecolor='black', edgecolor='none', zorder=0)
+            frame.set_clip_on(False)
+            self.ax.add_patch(frame)
+
+        background = plt.Rectangle((0, 0), self.width, self.height,
+                                    facecolor='white', edgecolor='none', zorder=1)
+        self.ax.add_patch(background)
+
         for i in range(self.maze.num_rows):
             for j in range(self.maze.num_cols):
                 # Add colored squares for entry and exit
                 cell = self.maze.initial_grid[i][j]
                 if cell.is_entry_exit == "entry":
-                    # Green square for start (smaller, centered)
+                    # Green square for start (smaller, centered; apply compensation if outline intrudes)
                     small_size = self.cell_size // 3
-                    offset = (self.cell_size - small_size) / 2
-                    entry_square = plt.Rectangle((j*self.cell_size + offset, i*self.cell_size + offset),
+                    base_offset = (self.cell_size - small_size) / 2
+                    compensation_x, compensation_y = self._get_border_compensation()
+
+                    x_offset = base_offset
+                    y_offset = base_offset
+
+                    # Adjust offset based on which edge has the opening (border)
+                    if not cell.walls["top"]:
+                        y_offset += compensation_y  # Push down from top border
+                    elif not cell.walls["bottom"]:
+                        y_offset -= compensation_y  # Push up from bottom border
+                    elif not cell.walls["left"]:
+                        x_offset += compensation_x  # Push right from left border
+                    elif not cell.walls["right"]:
+                        x_offset -= compensation_x  # Push left from right border
+
+                    entry_square = plt.Rectangle((j*self.cell_size + x_offset, i*self.cell_size + y_offset),
                                                   small_size, small_size,
                                                   facecolor='green', edgecolor='none')
                     self.ax.add_patch(entry_square)
                 elif cell.is_entry_exit == "exit":
-                    # Red square for exit (smaller, centered)
+                    # Red square for exit (smaller, centered; apply compensation if outline intrudes)
                     small_size = self.cell_size // 3
-                    offset = (self.cell_size - small_size) / 2
-                    exit_square = plt.Rectangle((j*self.cell_size + offset, i*self.cell_size + offset),
+                    base_offset = (self.cell_size - small_size) / 2
+                    compensation_x, compensation_y = self._get_border_compensation()
+
+                    x_offset = base_offset
+                    y_offset = base_offset
+
+                    # Adjust offset based on which edge has the opening (border)
+                    if not cell.walls["top"]:
+                        y_offset += compensation_y  # Push down from top border
+                    elif not cell.walls["bottom"]:
+                        y_offset -= compensation_y  # Push up from bottom border
+                    elif not cell.walls["left"]:
+                        x_offset += compensation_x  # Push right from left border
+                    elif not cell.walls["right"]:
+                        x_offset -= compensation_x  # Push left from right border
+
+                    exit_square = plt.Rectangle((j*self.cell_size + x_offset, i*self.cell_size + y_offset),
                                                  small_size, small_size,
                                                  facecolor='red', edgecolor='none')
                     self.ax.add_patch(exit_square)
@@ -86,23 +130,18 @@ class Visualizer(object):
                     elif self.maze.initial_grid[i][j].is_entry_exit == "exit":
                         self.ax.text(j*self.cell_size, i*self.cell_size, "END", fontsize=7, weight="bold")
 
-                if self.maze.initial_grid[i][j].walls["top"]:
+                if self._should_draw_wall(cell, i, j, "top"):
                     self.ax.plot([j*self.cell_size, (j+1)*self.cell_size],
-                                 [i*self.cell_size, i*self.cell_size], color="k", linewidth=40)
-                if self.maze.initial_grid[i][j].walls["right"]:
+                                 [i*self.cell_size, i*self.cell_size], color="k", linewidth=self.wall_linewidth)
+                if self._should_draw_wall(cell, i, j, "right"):
                     self.ax.plot([(j+1)*self.cell_size, (j+1)*self.cell_size],
-                                 [i*self.cell_size, (i+1)*self.cell_size], color="k", linewidth=40)
-                if self.maze.initial_grid[i][j].walls["bottom"]:
+                                 [i*self.cell_size, (i+1)*self.cell_size], color="k", linewidth=self.wall_linewidth)
+                if self._should_draw_wall(cell, i, j, "bottom"):
                     self.ax.plot([(j+1)*self.cell_size, j*self.cell_size],
-                                 [(i+1)*self.cell_size, (i+1)*self.cell_size], color="k", linewidth=40)
-                if self.maze.initial_grid[i][j].walls["left"]:
+                                 [(i+1)*self.cell_size, (i+1)*self.cell_size], color="k", linewidth=self.wall_linewidth)
+                if self._should_draw_wall(cell, i, j, "left"):
                     self.ax.plot([j*self.cell_size, j*self.cell_size],
-                                 [(i+1)*self.cell_size, i*self.cell_size], color="k", linewidth=40)
-
-        # Draw thick black border around entire maze (double the wall width)
-        border = plt.Rectangle((0, 0), self.width, self.height,
-                                fill=False, edgecolor='k', linewidth=80)
-        self.ax.add_patch(border)
+                                 [(i+1)*self.cell_size, i*self.cell_size], color="k", linewidth=self.wall_linewidth)
 
     def configure_plot(self):
         """Sets the initial properties of the maze plot. Also creates the plot and axes"""
@@ -134,6 +173,53 @@ class Visualizer(object):
                                 bbox={"facecolor": "gray", "alpha": 0.5, "pad": 4}, fontname="serif", fontsize=15)
 
         return fig
+
+    def _points_to_data_units(self, points):
+        """Convert a length specified in points to data units for the current axes."""
+
+        if self.ax is None:
+            return 0.0, 0.0
+
+        fig = self.ax.figure
+        pixels = points * (fig.dpi / 72.0)
+
+        origin_disp = self.ax.transData.transform((0, 0))
+        unit_x_disp = self.ax.transData.transform((1, 0))
+        unit_y_disp = self.ax.transData.transform((0, 1))
+
+        pixels_per_data_x = unit_x_disp[0] - origin_disp[0]
+        pixels_per_data_y = unit_y_disp[1] - origin_disp[1]
+
+        pad_x = pixels / pixels_per_data_x if pixels_per_data_x != 0 else 0.0
+        pad_y = pixels / pixels_per_data_y if pixels_per_data_y != 0 else 0.0
+
+        return pad_x, pad_y
+
+    def _get_border_compensation(self):
+        """Return the data-unit offset required to compensate for outline overhang."""
+
+        points_difference = max(0.0, self.outline_linewidth - self.wall_linewidth) / 2.0
+        return self._points_to_data_units(points_difference)
+
+    def _should_draw_wall(self, cell, row_idx, col_idx, side):
+        """Determine if a wall segment should be rendered for a given cell side."""
+
+        if cell.walls[side]:
+            return True
+
+        if cell.is_entry_exit is None:
+            return False
+
+        if side == "top" and row_idx == 0:
+            return True
+        if side == "bottom" and row_idx == self.maze.num_rows - 1:
+            return True
+        if side == "left" and col_idx == 0:
+            return True
+        if side == "right" and col_idx == self.maze.num_cols - 1:
+            return True
+
+        return False
 
     def show_maze_solution(self):
         """Function that plots the solution to the maze. Also adds indication of entry and exit points."""
