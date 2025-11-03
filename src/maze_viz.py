@@ -20,7 +20,7 @@ class Visualizer(object):
         media_filename (string): The name of the animations and images
 
     """
-    def __init__(self, maze, cell_size, media_filename):
+    def __init__(self, maze, cell_size, media_filename, show_text=True):
         self.maze = maze
         self.cell_size = cell_size
         self.height = maze.num_rows * cell_size
@@ -29,6 +29,7 @@ class Visualizer(object):
         self.lines = dict()
         self.squares = dict()
         self.media_filename = media_filename
+        self.show_text = show_text
 
     def set_media_filename(self, filename):
         """Sets the filename of the media
@@ -37,7 +38,7 @@ class Visualizer(object):
         """
         self.media_filename = filename
 
-    def show_maze(self):
+    def show_maze(self, display=True):
         """Displays a plot of the maze without the solution path"""
 
         # Create the plot figure and style the axes
@@ -46,33 +47,37 @@ class Visualizer(object):
         # Plot the walls on the figure
         self.plot_walls()
 
-        # Display the plot to the user
-        plt.show()
-
         # Handle any potential saving
         if self.media_filename:
-            fig.savefig("{}{}.png".format(self.media_filename, "_generation"), frameon=None)
+            fig.savefig("{}{}.png".format(self.media_filename, "_generation"), bbox_inches='tight', pad_inches=0)
+
+        # Display the plot to the user
+        if display:
+            plt.show()
+        else:
+            plt.close(fig)
 
     def plot_walls(self):
         """ Plots the walls of a maze. This is used when generating the maze image"""
         for i in range(self.maze.num_rows):
             for j in range(self.maze.num_cols):
-                if self.maze.initial_grid[i][j].is_entry_exit == "entry":
-                    self.ax.text(j*self.cell_size, i*self.cell_size, "START", fontsize=7, weight="bold")
-                elif self.maze.initial_grid[i][j].is_entry_exit == "exit":
-                    self.ax.text(j*self.cell_size, i*self.cell_size, "END", fontsize=7, weight="bold")
+                if self.show_text:
+                    if self.maze.initial_grid[i][j].is_entry_exit == "entry":
+                        self.ax.text(j*self.cell_size, i*self.cell_size, "START", fontsize=7, weight="bold")
+                    elif self.maze.initial_grid[i][j].is_entry_exit == "exit":
+                        self.ax.text(j*self.cell_size, i*self.cell_size, "END", fontsize=7, weight="bold")
                 if self.maze.initial_grid[i][j].walls["top"]:
                     self.ax.plot([j*self.cell_size, (j+1)*self.cell_size],
-                                 [i*self.cell_size, i*self.cell_size], color="k")
+                                 [i*self.cell_size, i*self.cell_size], color="k", linewidth=30)
                 if self.maze.initial_grid[i][j].walls["right"]:
                     self.ax.plot([(j+1)*self.cell_size, (j+1)*self.cell_size],
-                                 [i*self.cell_size, (i+1)*self.cell_size], color="k")
+                                 [i*self.cell_size, (i+1)*self.cell_size], color="k", linewidth=30)
                 if self.maze.initial_grid[i][j].walls["bottom"]:
                     self.ax.plot([(j+1)*self.cell_size, j*self.cell_size],
-                                 [(i+1)*self.cell_size, (i+1)*self.cell_size], color="k")
+                                 [(i+1)*self.cell_size, (i+1)*self.cell_size], color="k", linewidth=30)
                 if self.maze.initial_grid[i][j].walls["left"]:
                     self.ax.plot([j*self.cell_size, j*self.cell_size],
-                                 [(i+1)*self.cell_size, i*self.cell_size], color="k")
+                                 [(i+1)*self.cell_size, i*self.cell_size], color="k", linewidth=30)
 
     def configure_plot(self):
         """Sets the initial properties of the maze plot. Also creates the plot and axes"""
@@ -90,9 +95,18 @@ class Visualizer(object):
         self.ax.axes.get_xaxis().set_visible(False)
         self.ax.axes.get_yaxis().set_visible(False)
 
-        title_box = self.ax.text(0, self.maze.num_rows + self.cell_size + 0.1,
-                            r"{}$\times${}".format(self.maze.num_rows, self.maze.num_cols),
-                            bbox={"facecolor": "gray", "alpha": 0.5, "pad": 4}, fontname="serif", fontsize=15)
+        # Remove spines (borders)
+        for spine in self.ax.spines.values():
+            spine.set_visible(False)
+
+        # Set axis limits to exactly fit the maze
+        self.ax.set_xlim(0, self.width)
+        self.ax.set_ylim(0, self.height)
+
+        if self.show_text:
+            title_box = self.ax.text(0, self.maze.num_rows + self.cell_size + 0.1,
+                                r"{}$\times${}".format(self.maze.num_rows, self.maze.num_cols),
+                                bbox={"facecolor": "gray", "alpha": 0.5, "pad": 4}, fontname="serif", fontsize=15)
 
         return fig
 
@@ -128,7 +142,7 @@ class Visualizer(object):
 
         # Handle any saving
         if self.media_filename:
-            fig.savefig("{}{}.png".format(self.media_filename, "_solution"), frameon=None)
+            fig.savefig("{}{}.png".format(self.media_filename, "_solution"), bbox_inches='tight', pad_inches=0)
 
     def show_generation_animation(self):
         """Function that animates the process of generating the a maze where path is a list
@@ -231,10 +245,11 @@ class Visualizer(object):
         color_walls = "k"
         for i in range(self.maze.num_rows):
             for j in range(self.maze.num_cols):
-                if self.maze.initial_grid[i][j].is_entry_exit == "entry":
-                    self.ax.text(j*self.cell_size, i*self.cell_size, "START", fontsize = 7, weight = "bold")
-                elif self.maze.initial_grid[i][j].is_entry_exit == "exit":
-                    self.ax.text(j*self.cell_size, i*self.cell_size, "END", fontsize = 7, weight = "bold")
+                if self.show_text:
+                    if self.maze.initial_grid[i][j].is_entry_exit == "entry":
+                        self.ax.text(j*self.cell_size, i*self.cell_size, "START", fontsize = 7, weight = "bold")
+                    elif self.maze.initial_grid[i][j].is_entry_exit == "exit":
+                        self.ax.text(j*self.cell_size, i*self.cell_size, "END", fontsize = 7, weight = "bold")
 
                 if self.maze.initial_grid[i][j].walls["top"]:
                     self.lines["{},{}: top".format(i, j)] = self.ax.plot([j*self.cell_size, (j+1)*self.cell_size],
