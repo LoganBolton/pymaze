@@ -61,23 +61,48 @@ class Visualizer(object):
         """ Plots the walls of a maze. This is used when generating the maze image"""
         for i in range(self.maze.num_rows):
             for j in range(self.maze.num_cols):
+                # Add colored squares for entry and exit
+                cell = self.maze.initial_grid[i][j]
+                if cell.is_entry_exit == "entry":
+                    # Green square for start (smaller, centered)
+                    small_size = self.cell_size // 3
+                    offset = (self.cell_size - small_size) / 2
+                    entry_square = plt.Rectangle((j*self.cell_size + offset, i*self.cell_size + offset),
+                                                  small_size, small_size,
+                                                  facecolor='green', edgecolor='none')
+                    self.ax.add_patch(entry_square)
+                elif cell.is_entry_exit == "exit":
+                    # Red square for exit (smaller, centered)
+                    small_size = self.cell_size // 3
+                    offset = (self.cell_size - small_size) / 2
+                    exit_square = plt.Rectangle((j*self.cell_size + offset, i*self.cell_size + offset),
+                                                 small_size, small_size,
+                                                 facecolor='red', edgecolor='none')
+                    self.ax.add_patch(exit_square)
+
                 if self.show_text:
                     if self.maze.initial_grid[i][j].is_entry_exit == "entry":
                         self.ax.text(j*self.cell_size, i*self.cell_size, "START", fontsize=7, weight="bold")
                     elif self.maze.initial_grid[i][j].is_entry_exit == "exit":
                         self.ax.text(j*self.cell_size, i*self.cell_size, "END", fontsize=7, weight="bold")
+
                 if self.maze.initial_grid[i][j].walls["top"]:
                     self.ax.plot([j*self.cell_size, (j+1)*self.cell_size],
-                                 [i*self.cell_size, i*self.cell_size], color="k", linewidth=30)
+                                 [i*self.cell_size, i*self.cell_size], color="k", linewidth=40)
                 if self.maze.initial_grid[i][j].walls["right"]:
                     self.ax.plot([(j+1)*self.cell_size, (j+1)*self.cell_size],
-                                 [i*self.cell_size, (i+1)*self.cell_size], color="k", linewidth=30)
+                                 [i*self.cell_size, (i+1)*self.cell_size], color="k", linewidth=40)
                 if self.maze.initial_grid[i][j].walls["bottom"]:
                     self.ax.plot([(j+1)*self.cell_size, j*self.cell_size],
-                                 [(i+1)*self.cell_size, (i+1)*self.cell_size], color="k", linewidth=30)
+                                 [(i+1)*self.cell_size, (i+1)*self.cell_size], color="k", linewidth=40)
                 if self.maze.initial_grid[i][j].walls["left"]:
                     self.ax.plot([j*self.cell_size, j*self.cell_size],
-                                 [(i+1)*self.cell_size, i*self.cell_size], color="k", linewidth=30)
+                                 [(i+1)*self.cell_size, i*self.cell_size], color="k", linewidth=40)
+
+        # Draw thick black border around entire maze (double the wall width)
+        border = plt.Rectangle((0, 0), self.width, self.height,
+                                fill=False, edgecolor='k', linewidth=80)
+        self.ax.add_patch(border)
 
     def configure_plot(self):
         """Sets the initial properties of the maze plot. Also creates the plot and axes"""

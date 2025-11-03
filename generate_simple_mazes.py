@@ -12,6 +12,6 @@ if __name__ == "__main__":
     # Save the maze as PNG file without text
     print("Saving 3x3 maze...")
     manager.set_filename("output/maze_3x3")
-    manager.show_maze(maze_3x3.id, cell_size=2, show_text=False, display=False)
+    manager.show_maze(maze_3x3.id, cell_size=20, show_text=False, display=False)
 
     print("\nMaze generated and saved to output/maze_3x3_generation.png")
