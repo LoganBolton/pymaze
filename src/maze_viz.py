@@ -75,6 +75,15 @@ class Visualizer(object):
                                     facecolor='white', edgecolor='none', zorder=1)
         self.ax.add_patch(background)
 
+        wall_linewidth = max(1, min(self.wall_linewidth, self.cell_size - 1))
+        line_kwargs = {
+            "color": "k",
+            "linewidth": wall_linewidth,
+            "solid_capstyle": "butt",
+            "solid_joinstyle": "miter",
+            "zorder": 3,
+        }
+
         for i in range(self.maze.num_rows):
             for j in range(self.maze.num_cols):
                 cell_x = j * self.cell_size
@@ -141,17 +150,20 @@ class Visualizer(object):
                         self.ax.text(j*self.cell_size, i*self.cell_size, "END", fontsize=7, weight="bold")
 
                 if self._should_draw_wall(cell, i, j, "top"):
-                    self.ax.plot([j*self.cell_size, (j+1)*self.cell_size],
-                                 [i*self.cell_size, i*self.cell_size], color="k", linewidth=self.wall_linewidth)
+                    self.ax.plot([cell_x, cell_x + self.cell_size],
+                                 [cell_y, cell_y], **line_kwargs)
+
                 if self._should_draw_wall(cell, i, j, "right"):
-                    self.ax.plot([(j+1)*self.cell_size, (j+1)*self.cell_size],
-                                 [i*self.cell_size, (i+1)*self.cell_size], color="k", linewidth=self.wall_linewidth)
+                    self.ax.plot([cell_x + self.cell_size, cell_x + self.cell_size],
+                                 [cell_y, cell_y + self.cell_size], **line_kwargs)
+
                 if self._should_draw_wall(cell, i, j, "bottom"):
-                    self.ax.plot([(j+1)*self.cell_size, j*self.cell_size],
-                                 [(i+1)*self.cell_size, (i+1)*self.cell_size], color="k", linewidth=self.wall_linewidth)
+                    self.ax.plot([cell_x + self.cell_size, cell_x],
+                                 [cell_y + self.cell_size, cell_y + self.cell_size], **line_kwargs)
+
                 if self._should_draw_wall(cell, i, j, "left"):
-                    self.ax.plot([j*self.cell_size, j*self.cell_size],
-                                 [(i+1)*self.cell_size, i*self.cell_size], color="k", linewidth=self.wall_linewidth)
+                    self.ax.plot([cell_x, cell_x],
+                                 [cell_y + self.cell_size, cell_y], **line_kwargs)
 
     def configure_plot(self):
         """Sets the initial properties of the maze plot. Also creates the plot and axes"""
