@@ -1,17 +1,30 @@
 from __future__ import absolute_import
+
+import os
+
 from src.maze_manager import MazeManager
 
+
+OUTPUT_DIR = "output"
+
+
+def ensure_output_dir(path):
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
+
 if __name__ == "__main__":
-    # Create a maze manager
+    ensure_output_dir(OUTPUT_DIR)
+
     manager = MazeManager()
 
-    # Generate a 3x3 maze
-    print("Generating 3x3 maze...")
-    maze_3x3 = manager.add_maze(3, 3)
+    for idx in range(1, 6):
+        print(f"Generating 3x3 maze {idx}...")
+        maze = manager.add_maze(3, 3)
 
-    # Save the maze as PNG file without text
-    print("Saving 3x3 maze...")
-    manager.set_filename("output/maze_3x3")
-    manager.show_maze(maze_3x3.id, cell_size=20, show_text=False, display=False)
+        filename = os.path.join(OUTPUT_DIR, f"maze_3x3_{idx}")
+        print(f"Saving 3x3 maze {idx} to {filename}_generation.png")
+        manager.set_filename(filename)
+        manager.show_maze(maze.id, cell_size=20, show_text=False, display=False)
 
-    print("\nMaze generated and saved to output/maze_3x3_generation.png")
+    print("\nAll 3x3 mazes generated and saved to the output directory.")

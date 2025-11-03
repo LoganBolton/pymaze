@@ -76,6 +76,7 @@ class Visualizer(object):
         self.ax.add_patch(background)
 
         wall_linewidth = max(1, min(self.wall_linewidth, self.cell_size - 1))
+        half_dx, half_dy = self._points_to_data_units(wall_linewidth / 2.0)
         line_kwargs = {
             "color": "k",
             "linewidth": wall_linewidth,
@@ -83,6 +84,15 @@ class Visualizer(object):
             "solid_joinstyle": "miter",
             "zorder": 3,
         }
+
+        rows = self.maze.num_rows
+        cols = self.maze.num_cols
+        grid = self.maze.initial_grid
+
+        def has_wall(r, c, side):
+            if r < 0 or r >= rows or c < 0 or c >= cols:
+                return False
+            return self._should_draw_wall(grid[r][c], r, c, side)
 
         for i in range(self.maze.num_rows):
             for j in range(self.maze.num_cols):
@@ -149,21 +159,52 @@ class Visualizer(object):
                     elif self.maze.initial_grid[i][j].is_entry_exit == "exit":
                         self.ax.text(j*self.cell_size, i*self.cell_size, "END", fontsize=7, weight="bold")
 
-                if self._should_draw_wall(cell, i, j, "top"):
-                    self.ax.plot([cell_x, cell_x + self.cell_size],
-                                 [cell_y, cell_y], **line_kwargs)
+                top_wall = self._should_draw_wall(cell, i, j, "top")
+                right_wall = self._should_draw_wall(cell, i, j, "right")
+                bottom_wall = self._should_draw_wall(cell, i, j, "bottom")
+                left_wall = self._should_draw_wall(cell, i, j, "left")
 
-                if self._should_draw_wall(cell, i, j, "right"):
-                    self.ax.plot([cell_x + self.cell_size, cell_x + self.cell_size],
-                                 [cell_y, cell_y + self.cell_size], **line_kwargs)
+                left_vertical = left_wall or (
+                    j > 0 and self._should_draw_wall(grid[i][j-1], i, j-1, "right")
+                )
+                right_vertical = right_wall or (
+                    j < cols - 1 and self._should_draw_wall(grid[i][j+1], i, j+1, "left")
+                )
+                top_horizontal = top_wall or (
+                    i > 0 and self._should_draw_wall(grid[i-1][j], i-1, j, "bottom")
+                )
+                bottom_horizontal = bottom_wall or (
+                    i < rows - 1 and self._should_draw_wall(grid[i+1][j], i+1, j, "top")
+                )
 
-                if self._should_draw_wall(cell, i, j, "bottom"):
-                    self.ax.plot([cell_x + self.cell_size, cell_x],
-                                 [cell_y + self.cell_size, cell_y + self.cell_size], **line_kwargs)
+                if top_wall:
+                    extend_left = half_dx if left_vertical else 0
+                    extend_right = half_dx if right_vertical else 0
+                    x_start = cell_x - extend_left
+                    x_end = cell_x + self.cell_size + extend_right
+                    self.ax.plot([x_start, x_end], [cell_y, cell_y], **line_kwargs)
 
-                if self._should_draw_wall(cell, i, j, "left"):
-                    self.ax.plot([cell_x, cell_x],
-                                 [cell_y + self.cell_size, cell_y], **line_kwargs)
+                if bottom_wall:
+                    extend_left = half_dx if left_vertical else 0
+                    extend_right = half_dx if right_vertical else 0
+                    y_pos = cell_y + self.cell_size
+                    self.ax.plot([cell_x + self.cell_size + extend_right, cell_x - extend_left],
+                                 [y_pos, y_pos], **line_kwargs)
+
+                if right_wall:
+                    extend_top = half_dy if top_horizontal else 0
+                    extend_bottom = half_dy if bottom_horizontal else 0
+                    y_start = cell_y - extend_top
+                    y_end = cell_y + self.cell_size + extend_bottom
+                    x_pos = cell_x + self.cell_size
+                    self.ax.plot([x_pos, x_pos], [y_start, y_end], **line_kwargs)
+
+                if left_wall:
+                    extend_top = half_dy if top_horizontal else 0
+                    extend_bottom = half_dy if bottom_horizontal else 0
+                    y_start = cell_y - extend_top
+                    y_end = cell_y + self.cell_size + extend_bottom
+                    self.ax.plot([cell_x, cell_x], [y_start, y_end], **line_kwargs)
 
     def configure_plot(self):
         """Sets the initial properties of the maze plot. Also creates the plot and axes"""
