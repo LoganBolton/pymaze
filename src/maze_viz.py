@@ -30,8 +30,10 @@ class Visualizer(object):
         self.squares = dict()
         self.media_filename = media_filename
         self.show_text = show_text
-        self.wall_linewidth = 40
-        self.outline_linewidth = 40
+        self.wall_linewidth = 25
+        self.outline_linewidth = 25
+        self.cell_border_linewidth = 3
+        self.cell_border_color = "#b3b3b3"
 
     def set_media_filename(self, filename):
         """Sets the filename of the media
@@ -75,11 +77,19 @@ class Visualizer(object):
 
         for i in range(self.maze.num_rows):
             for j in range(self.maze.num_cols):
+                cell_x = j * self.cell_size
+                cell_y = i * self.cell_size
+
+                cell_border = plt.Rectangle((cell_x, cell_y), self.cell_size, self.cell_size,
+                                             facecolor='none', edgecolor=self.cell_border_color,
+                                             linewidth=self.cell_border_linewidth, zorder=1.5)
+                self.ax.add_patch(cell_border)
+
                 # Add colored squares for entry and exit
                 cell = self.maze.initial_grid[i][j]
                 if cell.is_entry_exit == "entry":
                     # Green square for start (smaller, centered; apply compensation if outline intrudes)
-                    small_size = self.cell_size // 3
+                    small_size = max(1, int(self.cell_size * 0.25))
                     base_offset = (self.cell_size - small_size) / 2
                     compensation_x, compensation_y = self._get_border_compensation()
 
@@ -96,13 +106,13 @@ class Visualizer(object):
                     elif not cell.walls["right"]:
                         x_offset -= compensation_x  # Push left from right border
 
-                    entry_square = plt.Rectangle((j*self.cell_size + x_offset, i*self.cell_size + y_offset),
+                    entry_square = plt.Rectangle((cell_x + x_offset, cell_y + y_offset),
                                                   small_size, small_size,
-                                                  facecolor='green', edgecolor='none')
+                                                  facecolor='green', edgecolor='none', zorder=3)
                     self.ax.add_patch(entry_square)
                 elif cell.is_entry_exit == "exit":
                     # Red square for exit (smaller, centered; apply compensation if outline intrudes)
-                    small_size = self.cell_size // 3
+                    small_size = max(1, int(self.cell_size * 0.25))
                     base_offset = (self.cell_size - small_size) / 2
                     compensation_x, compensation_y = self._get_border_compensation()
 
@@ -119,9 +129,9 @@ class Visualizer(object):
                     elif not cell.walls["right"]:
                         x_offset -= compensation_x  # Push left from right border
 
-                    exit_square = plt.Rectangle((j*self.cell_size + x_offset, i*self.cell_size + y_offset),
+                    exit_square = plt.Rectangle((cell_x + x_offset, cell_y + y_offset),
                                                  small_size, small_size,
-                                                 facecolor='red', edgecolor='none')
+                                                 facecolor='red', edgecolor='none', zorder=3)
                     self.ax.add_patch(exit_square)
 
                 if self.show_text:
