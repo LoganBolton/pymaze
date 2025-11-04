@@ -77,6 +77,8 @@ class Visualizer(object):
 
         wall_linewidth = max(1, min(self.wall_linewidth, self.cell_size - 1))
         half_dx, half_dy = self._points_to_data_units(wall_linewidth / 2.0)
+        dash_length = max(1.0, self.cell_border_linewidth * 1.5)
+        border_dash = (0, (dash_length, dash_length))
         line_kwargs = {
             "color": "k",
             "linewidth": wall_linewidth,
@@ -99,10 +101,21 @@ class Visualizer(object):
                 cell_x = j * self.cell_size
                 cell_y = i * self.cell_size
 
-                cell_border = plt.Rectangle((cell_x, cell_y), self.cell_size, self.cell_size,
-                                             facecolor='none', edgecolor=self.cell_border_color,
-                                             linewidth=self.cell_border_linewidth, zorder=1.5)
-                self.ax.add_patch(cell_border)
+                for (x0, y0), (x1, y1) in (
+                    ((cell_x, cell_y), (cell_x + self.cell_size, cell_y)),
+                    ((cell_x + self.cell_size, cell_y), (cell_x + self.cell_size, cell_y + self.cell_size)),
+                    ((cell_x + self.cell_size, cell_y + self.cell_size), (cell_x, cell_y + self.cell_size)),
+                    ((cell_x, cell_y + self.cell_size), (cell_x, cell_y)),
+                ):
+                    self.ax.plot(
+                        [x0, x1],
+                        [y0, y1],
+                        color=self.cell_border_color,
+                        linewidth=self.cell_border_linewidth,
+                        linestyle=border_dash,
+                        solid_capstyle='butt',
+                        zorder=1.5,
+                    )
 
                 # Add colored squares for entry and exit
                 cell = self.maze.initial_grid[i][j]
