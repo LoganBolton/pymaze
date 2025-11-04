@@ -1,6 +1,10 @@
 from __future__ import absolute_import
 
+import json
 import os
+import uuid
+from collections import deque
+from datetime import datetime
 
 from src.maze_manager import MazeManager
 
@@ -8,32 +12,152 @@ from src.maze_manager import MazeManager
 OUTPUT_DIR = "output"
 
 
-def ensure_output_dir(path):
+def ensure_dir(path):
     if not os.path.isdir(path):
         os.makedirs(path)
 
 
-if __name__ == "__main__":
-    ensure_output_dir(OUTPUT_DIR)
+def save_metadata(path, data):
+    with open(path, "w", encoding="utf-8") as metadata_file:
+        json.dump(data, metadata_file, indent=2)
+
+
+def compute_shortest_path(maze):
+    start = maze.entry_coor
+    goal = maze.exit_coor
+
+    queue = deque([start])
+    parents = {start: None}
+
+    def get_neighbors(r, c):
+        cell = maze.grid[r][c]
+        neighbors = []
+        if not cell.walls["top"] and r > 0:
+            neighbors.append((r - 1, c))
+        if not cell.walls["right"] and c < maze.num_cols - 1:
+            neighbors.append((r, c + 1))
+        if not cell.walls["bottom"] and r < maze.num_rows - 1:
+            neighbors.append((r + 1, c))
+        if not cell.walls["left"] and c > 0:
+            neighbors.append((r, c - 1))
+        return neighbors
+
+    while queue:
+        current = queue.popleft()
+        if current == goal:
+            break
+        for neighbor in get_neighbors(*current):
+            if neighbor not in parents:
+                parents[neighbor] = current
+                queue.append(neighbor)
+
+    if goal not in parents:
+        return {
+            "coordinates": [],
+            "directions": [],
+            "directions_numeric": [],
+        }
+
+    path = []
+    node = goal
+    while node is not None:
+        path.append(node)
+        node = parents[node]
+    path.reverse()
+
+    direction_map = {
+        (-1, 0): ("down", 0),   # visually downward on plot
+        (1, 0): ("up", 1),      # visually upward on plot
+        (0, -1): ("left", 2),
+        (0, 1): ("right", 3),
+    }
+
+    directions = []
+    numeric = []
+    for (r1, c1), (r2, c2) in zip(path, path[1:]):
+        dr = r2 - r1
+        dc = c2 - c1
+        dir_label, dir_code = direction_map[(dr, dc)]
+        directions.append(dir_label)
+        numeric.append(dir_code)
+
+    return {
+        "coordinates": [list(coord) for coord in path],
+        "directions": directions,
+        "directions_numeric": numeric,
+    }
+
+
+def run_generation():
+    ensure_dir(OUTPUT_DIR)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_dir = os.path.join(OUTPUT_DIR, f"generation_{timestamp}")
+    ensure_dir(run_dir)
 
     manager = MazeManager()
 
-    for idx in range(1, 6):
-        print(f"Generating 3x3 maze {idx}...")
-        maze = manager.add_maze(3, 3)
+    maze_specs = [
+        {"rows": 3, "cols": 3, "cell_size": 20, "count": 5},
+        {"rows": 4, "cols": 4, "cell_size": 18, "count": 5},
+    ]
 
-        filename = os.path.join(OUTPUT_DIR, f"maze_3x3_{idx}")
-        print(f"Saving 3x3 maze {idx} to {filename}_generation.png")
-        manager.set_filename(filename)
-        manager.show_maze(maze.id, cell_size=20, show_text=False, display=False)
+    maze_index = 1
 
-    for idx in range(1, 6):
-        print(f"Generating 4x4 maze {idx}...")
-        maze = manager.add_maze(4, 4)
+    for spec in maze_specs:
+        rows = spec["rows"]
+        cols = spec["cols"]
+        cell_size = spec["cell_size"]
+        count = spec["count"]
 
-        filename = os.path.join(OUTPUT_DIR, f"maze_4x4_{idx}")
-        print(f"Saving 4x4 maze {idx} to {filename}_generation.png")
-        manager.set_filename(filename)
-        manager.show_maze(maze.id, cell_size=18, show_text=False, display=False)
+        for _ in range(count):
+            print(f"Generating {rows}x{cols} maze {maze_index}...")
+            maze = manager.add_maze(rows, cols)
 
-    print("\nAll 3x3 and 4x4 mazes generated and saved to the output directory.")
+            maze_dir = os.path.join(run_dir, f"maze_{maze_index}")
+            ensure_dir(maze_dir)
+
+            short_uuid = uuid.uuid4().hex[:8]
+            file_stem = f"maze_{short_uuid}_{maze_index}"
+            base_filename = os.path.join(maze_dir, file_stem)
+            manager.set_filename(base_filename)
+
+            print(f"Saving maze {maze_index} to {base_filename}_generation.png")
+            manager.show_maze(maze.id, cell_size=cell_size, show_text=False, display=False)
+
+            generated_path = f"{base_filename}_generation.png"
+            final_png_name = f"{file_stem}.png"
+            final_png_path = os.path.join(maze_dir, final_png_name)
+            os.replace(generated_path, final_png_path)
+
+            shortest_path = compute_shortest_path(maze)
+
+            metadata = {
+                "maze_index": maze_index,
+                "generated_at": timestamp,
+                "unique_id": short_uuid,
+                "rows": rows,
+                "cols": cols,
+                "cell_size": cell_size,
+                "maze_id": maze.id,
+                "entry_coordinate": list(maze.entry_coor),
+                "exit_coordinate": list(maze.exit_coor),
+                "generation_algorithm": "depth_first_recursive_backtracker",
+                "generation_path_length": len(maze.generation_path),
+                "shortest_path_coordinates": shortest_path["coordinates"],
+                "shortest_path_directions": shortest_path["directions"],
+                "shortest_path_directions_numeric": shortest_path["directions_numeric"],
+                "output_image": final_png_name,
+                "generation_path": [list(step) for step in maze.generation_path],
+            }
+
+            metadata_path = os.path.join(maze_dir, "metadata.json")
+            save_metadata(metadata_path, metadata)
+
+            maze_index += 1
+
+    print("\nAll 3x3 and 4x4 mazes generated with metadata saved.")
+
+
+if __name__ == "__main__":
+    run_generation()
