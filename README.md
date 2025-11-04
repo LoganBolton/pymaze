@@ -132,4 +132,6 @@ Replace `generation_YYYYMMDD_HHMMSS` with the actual timestamped directory creat
 
 - `output/generation_…/path_length_<n>/maze_<index>_<uuid>/` contains the original PNGs, overlay PNGs, and metadata.
 - `output/generation_…/valid_flattened/` holds the plain maze images and matching `.txt` prompts with the correct path.
+- `output/generation_…/sketch_valid_flattened/` mirrors the valid prompts but adds an instruction to sketch the path before answering.
 - `output/generation_…/substitution_invalid_flattened/` holds the same images but paired with a substitution error in the path prompt.
+- `output/generation_…/substitution_sketch_invalid_flattened/` mirrors the invalid prompts while also asking for a sketch prior to answering.
