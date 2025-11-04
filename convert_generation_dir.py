@@ -6,12 +6,22 @@ import shutil
 from pathlib import Path
 
 
+# GENERAL_PROMPT = (
+#     "You are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. "
+#     "The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. "
+#     "You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. "
+#     "Each move will move exactly one cell length in that direction. For example, \"right\" means move one cell to the right. "
+#     "A valid path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. "
+#     "Respond with $\\boxed{valid}$ if the path is valid or respond with $\\boxed{invalid}$ if the path is invalid. Determine if the following proposed path is valid."
+# )
+
 GENERAL_PROMPT = (
     "You are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. "
     "The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. "
     "You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. "
+    "Each move will move exactly one cell length in that direction. For example, \"right\" means move one cell to the right. "
     "A valid path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. "
-    "Respond with $\\boxed{valid}$ if the path is valid or respond with $\\boxed{invalid}$ if the path is invalid. Determine if the following proposed path is valid."
+    "Respond with $\\boxed{valid}$ if the path is valid. If the path is invalid, please put the index of the move that is invalid in the proposed path (using zero-based indexing). For example if in the path \"up, down, left\", left is incorrect, the final answer should be $\\boxed{2}$. Determine if the following proposed path is valid."
 )
 
 SKETCH_PROMPT = "Please sketch out the proposed path before responding with your final answer."
@@ -32,10 +42,16 @@ def convert_generation_dir(generation_dir: Path, output_base: Path | None) -> No
     if output_base is None:
         output_base = generation_dir
 
-    valid_dir = output_base / "valid_flattened"
-    sketch_valid_dir = output_base / "sketch_valid_flattened"
-    invalid_dir = output_base / "substitution_invalid_flattened"
-    sketch_invalid_dir = output_base / "substitution_sketch_invalid_flattened"
+    # valid_dir = output_base / "valid_flattened"
+    # sketch_valid_dir = output_base / "sketch_valid_flattened"
+    # invalid_dir = output_base / "substitution_invalid_flattened"
+    # sketch_invalid_dir = output_base / "substitution_sketch_invalid_flattened"
+    
+    valid_dir = output_base / "index_invalid_flattened"
+    sketch_valid_dir = output_base / "index_sketch_valid_flattened"
+    invalid_dir = output_base / "index_substitution_invalid_flattened"
+    sketch_invalid_dir = output_base / "index_substitution_sketch_invalid_flattened"
+    
     for directory in (valid_dir, sketch_valid_dir, invalid_dir, sketch_invalid_dir):
         directory.mkdir(parents=True, exist_ok=True)
 
