@@ -116,3 +116,20 @@ The style guide employed is pycodestyle. To install pycodestyle, navigate to the
 To check your file run
  
 `pycodestyle src/my_file.py`.
+
+
+### Generating and Flattening Maze Datasets
+
+To generate a fresh dataset of 3×3 mazes bucketed by shortest-path length (1–7) and then flatten it into
+prompt-ready files, run the following from the project root:
+
+```bash
+python generate_simple_mazes.py
+python convert_generation_dir.py output/generation_YYYYMMDD_HHMMSS --output output/generation_YYYYMMDD_HHMMSS
+```
+
+Replace `generation_YYYYMMDD_HHMMSS` with the actual timestamped directory created by the generator. After running:
+
+- `output/generation_…/path_length_<n>/maze_<index>_<uuid>/` contains the original PNGs, overlay PNGs, and metadata.
+- `output/generation_…/valid_flattened/` holds the plain maze images and matching `.txt` prompts with the correct path.
+- `output/generation_…/substitution_invalid_flattened/` holds the same images but paired with a substitution error in the path prompt.

@@ -150,7 +150,7 @@ def run_generation():
     manager = MazeManager()
 
     target_lengths = list(range(1, 8))
-    images_per_length = 10
+    images_per_length = 7
     counts = {length: 0 for length in target_lengths}
     seen_hashes = set()
 
