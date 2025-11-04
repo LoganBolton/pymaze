@@ -187,7 +187,7 @@ def run_generation():
         counts[path_steps] += 1
 
         short_uuid = uuid.uuid4().hex[:8]
-        file_stem = f"maze_{short_uuid}_{maze_index}"
+        file_stem = f"maze_{maze_index}_{short_uuid}"
         path_dir = os.path.join(run_dir, f"path_length_{path_steps}")
         ensure_dir(path_dir)
 

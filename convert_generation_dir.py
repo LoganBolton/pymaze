@@ -6,19 +6,9 @@ import shutil
 from pathlib import Path
 
 
-VALID_PROMPT = (
-    "You are given an image of a maze where the green square marks the START cell and the red square marks the END cell. "
-    "The walls are solid black lines, while dashed gray lines mark cell boundaries you may cross. "
-    "A valid path reaches the END without crossing any solid walls and remains on the grid."
+GENERAL_PROMPT = (
+    "You are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. A vaild path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. Respond with $\boxed{valid}$ if the path is valid or respond with $\boxed{invalid}$ if the path is invalid. Determine if the following proposed path is valid."
 )
-
-INVALID_PROMPT = (
-    "You are given the same maze image, but the proposed path may contain an incorrect move. "
-    "Check whether this altered sequence still reaches the END without breaking any maze walls."
-)
-
-QUESTION = "Does this path lead from the START to the END?"
-
 
 def convert_generation_dir(generation_dir: Path, output_base: Path | None) -> None:
     if not generation_dir.exists() or not generation_dir.is_dir():
@@ -55,13 +45,7 @@ def convert_generation_dir(generation_dir: Path, output_base: Path | None) -> No
         shutil.copy2(source_image, destination_image_valid)
 
         text_path_valid = destination_image_valid.with_suffix(".txt")
-        lines_valid = [
-            VALID_PROMPT,
-            "",
-            f"Proposed path: {path_str}",
-            "",
-            QUESTION,
-        ]
+        lines_valid = [GENERAL_PROMPT, "", f"Proposed path: {path_str}", "", QUESTION]
         text_path_valid.write_text("\n".join(lines_valid), encoding="utf-8")
 
         substitution = metadata.get("incorrect_paths", {}).get("substitution")
@@ -76,19 +60,12 @@ def convert_generation_dir(generation_dir: Path, output_base: Path | None) -> No
             new_dir = substitution.get("new_direction")
 
             text_path_invalid = destination_image_invalid.with_suffix(".txt")
-            detail_line = (
-                f"Substitution detail: index {changed_index}, {original_dir} -> {new_dir}"
-                if changed_index is not None
-                else "Substitution detail: not available"
-            )
-            lines_invalid = [
-                INVALID_PROMPT,
-                "",
-                f"Proposed path: {sub_path_str}",
-                detail_line,
-                "",
-                QUESTION,
-            ]
+            if changed_index is not None:
+                detail_line = f"Substitution detail: index {changed_index}, {original_dir} -> {new_dir}"
+            else:
+                detail_line = "Substitution detail: not available"
+
+            lines_invalid = [GENERAL_PROMPT, "", f"Proposed path: {sub_path_str}", detail_line, "", QUESTION]
             text_path_invalid.write_text("\n".join(lines_invalid), encoding="utf-8")
 
 
