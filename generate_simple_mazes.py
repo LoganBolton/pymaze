@@ -97,86 +97,111 @@ def run_generation():
 
     manager = MazeManager()
 
-    maze_specs = [
-        {"rows": 3, "cols": 3, "cell_size": 20, "count": 5},
-        {"rows": 4, "cols": 4, "cell_size": 18, "count": 5},
-    ]
+    target_lengths = list(range(1, 8))
+    images_per_length = 10
+    counts = {length: 0 for length in target_lengths}
+    seen_hashes = set()
 
     maze_index = 1
+    attempts = 0
+    max_attempts = 100000
 
-    for spec in maze_specs:
-        rows = spec["rows"]
-        cols = spec["cols"]
-        cell_size = spec["cell_size"]
-        count = spec["count"]
+    while any(counts[length] < images_per_length for length in target_lengths):
+        attempts += 1
+        if attempts > max_attempts:
+            raise RuntimeError("Exceeded maximum attempts while searching for desired path lengths.")
 
-        for _ in range(count):
-            print(f"Generating {rows}x{cols} maze {maze_index}...")
-            maze = manager.add_maze(rows, cols)
+        rows = cols = 3
+        cell_size = 20
 
-            maze_dir = os.path.join(run_dir, f"maze_{maze_index}")
-            ensure_dir(maze_dir)
+        maze = manager.add_maze(rows, cols)
+        shortest_path = compute_shortest_path(maze)
+        if not shortest_path["coordinates"]:
+            manager.set_filename("")
+            continue
+        hash_key = tuple(
+            tuple((side, cell.walls[side]) for side in ("top", "right", "bottom", "left"))
+            for row in maze.grid
+            for cell in row
+        )
+        if hash_key in seen_hashes:
+            continue
+        seen_hashes.add(hash_key)
+        path_steps = len(shortest_path["directions"])
 
-            short_uuid = uuid.uuid4().hex[:8]
-            file_stem = f"maze_{short_uuid}_{maze_index}"
-            base_filename = os.path.join(maze_dir, file_stem)
-            manager.set_filename(base_filename)
+        if path_steps not in counts or counts[path_steps] >= images_per_length:
+            continue
 
-            print(f"Saving maze {maze_index} to {base_filename}_generation.png")
-            manager.show_maze(maze.id, cell_size=cell_size, show_text=False, display=False)
+        counts[path_steps] += 1
 
-            generated_path = f"{base_filename}_generation.png"
-            final_png_name = f"{file_stem}.png"
-            final_png_path = os.path.join(maze_dir, final_png_name)
-            os.replace(generated_path, final_png_path)
+        short_uuid = uuid.uuid4().hex[:8]
+        file_stem = f"maze_{short_uuid}_{maze_index}"
+        path_dir = os.path.join(run_dir, f"path_length_{path_steps}")
+        ensure_dir(path_dir)
 
-            shortest_path = compute_shortest_path(maze)
+        maze_dir = os.path.join(path_dir, file_stem)
+        ensure_dir(maze_dir)
 
-            path_image_name = None
-            path_coords = [tuple(coord) for coord in shortest_path["coordinates"]]
-            if len(path_coords) >= 2:
-                path_base_filename = os.path.join(maze_dir, f"{file_stem}_path")
-                manager.set_filename(path_base_filename)
-                manager.show_maze(
-                    maze.id,
-                    cell_size=cell_size,
-                    show_text=False,
-                    display=False,
-                    path_coords=path_coords,
-                    path_color="red",
-                    path_linewidth=1.5,
-                )
-                generated_path_image = f"{path_base_filename}_generation.png"
-                path_image_name = f"{file_stem}_path.png"
-                os.replace(generated_path_image, os.path.join(maze_dir, path_image_name))
+        base_filename = os.path.join(maze_dir, file_stem)
+        manager.set_filename(base_filename)
 
-            metadata = {
-                "maze_index": maze_index,
-                "generated_at": timestamp,
-                "unique_id": short_uuid,
-                "rows": rows,
-                "cols": cols,
-                "cell_size": cell_size,
-                "maze_id": maze.id,
-                "entry_coordinate": list(maze.entry_coor),
-                "exit_coordinate": list(maze.exit_coor),
-                "generation_algorithm": "depth_first_recursive_backtracker",
-                "generation_path_length": len(maze.generation_path),
-                "shortest_path_directions": shortest_path["directions"],
-                "shortest_path_length": len(shortest_path["coordinates"]),
-                "shortest_path_coordinates": shortest_path["coordinates"],
-                "shortest_path_directions_numeric": shortest_path["directions_numeric"],
-                "output_image": final_png_name,
-                "output_image_with_path": path_image_name,
-                "generation_path": [list(step) for step in maze.generation_path],
-            }
+        print(
+            f"Generating 3x3 maze {maze_index} (path length {path_steps}) -> {base_filename}_generation.png"
+        )
+        manager.show_maze(maze.id, cell_size=cell_size, show_text=False, display=False)
 
-            metadata_path = os.path.join(maze_dir, "metadata.json")
-            save_metadata(metadata_path, metadata)
+        generated_path = f"{base_filename}_generation.png"
+        final_png_name = f"{file_stem}.png"
+        final_png_path = os.path.join(maze_dir, final_png_name)
+        os.replace(generated_path, final_png_path)
 
-            maze_index += 1
+        path_image_name = None
+        path_coords = [tuple(coord) for coord in shortest_path["coordinates"]]
+        if len(path_coords) >= 2:
+            path_base_filename = os.path.join(maze_dir, f"{file_stem}_path")
+            manager.set_filename(path_base_filename)
+            manager.show_maze(
+                maze.id,
+                cell_size=cell_size,
+                show_text=False,
+                display=False,
+                path_coords=path_coords,
+                path_color="red",
+                path_linewidth=1.5,
+            )
+            generated_path_image = f"{path_base_filename}_generation.png"
+            path_image_name = f"{file_stem}_path.png"
+            os.replace(generated_path_image, os.path.join(maze_dir, path_image_name))
 
-    print("\nAll 3x3 and 4x4 mazes generated with metadata saved.")
+        metadata = {
+            "maze_index": maze_index,
+            "generated_at": timestamp,
+            "unique_id": short_uuid,
+            "rows": rows,
+            "cols": cols,
+            "cell_size": cell_size,
+            "maze_id": maze.id,
+            "entry_coordinate": list(maze.entry_coor),
+            "exit_coordinate": list(maze.exit_coor),
+            "generation_algorithm": "depth_first_recursive_backtracker",
+            "generation_path_length": len(maze.generation_path),
+            "shortest_path_directions": shortest_path["directions"],
+            "shortest_path_length": len(shortest_path["directions"]),
+            "shortest_path_coordinates": shortest_path["coordinates"],
+            "shortest_path_directions_numeric": shortest_path["directions_numeric"],
+            "output_image": final_png_name,
+            "output_image_with_path": path_image_name,
+            "generation_path": [list(step) for step in maze.generation_path],
+        }
+
+        metadata_path = os.path.join(maze_dir, "metadata.json")
+        save_metadata(metadata_path, metadata)
+
+        maze_index += 1
+
+    print("\nCompleted generation targets:")
+    for length in target_lengths:
+        print(f"  Path length {length}: {counts[length]} mazes")
 
 
 if __name__ == "__main__":
