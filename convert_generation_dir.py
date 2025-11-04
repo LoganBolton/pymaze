@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 GENERAL_PROMPT = (
-    "You are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. A vaild path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. Respond with $\boxed{valid}$ if the path is valid or respond with $\boxed{invalid}$ if the path is invalid. Determine if the following proposed path is valid."
+    "You are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. A valid path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. Respond with $\\boxed{valid}$ if the path is valid or respond with $\\boxed{invalid}$ if the path is invalid. Determine if the following proposed path is valid."
 )
 
 def convert_generation_dir(generation_dir: Path, output_base: Path | None) -> None:
@@ -45,28 +45,28 @@ def convert_generation_dir(generation_dir: Path, output_base: Path | None) -> No
         shutil.copy2(source_image, destination_image_valid)
 
         text_path_valid = destination_image_valid.with_suffix(".txt")
-        lines_valid = [GENERAL_PROMPT, "", f"Proposed path: {path_str}", "", QUESTION]
+        lines_valid = [GENERAL_PROMPT, "", f"Proposed path: {path_str}"]
         text_path_valid.write_text("\n".join(lines_valid), encoding="utf-8")
 
         substitution = metadata.get("incorrect_paths", {}).get("substitution")
-        if substitution:
-            destination_image_invalid = invalid_dir / source_image.name
-            shutil.copy2(source_image, destination_image_invalid)
 
-            sub_dirs = substitution.get("directions", [])
-            sub_path_str = ", ".join(sub_dirs) if sub_dirs else "(no path available)"
-            changed_index = substitution.get("modified_index")
-            original_dir = substitution.get("original_direction")
-            new_dir = substitution.get("new_direction")
+        destination_image_invalid = invalid_dir / source_image.name
+        shutil.copy2(source_image, destination_image_invalid)
 
-            text_path_invalid = destination_image_invalid.with_suffix(".txt")
-            if changed_index is not None:
-                detail_line = f"Substitution detail: index {changed_index}, {original_dir} -> {new_dir}"
-            else:
-                detail_line = "Substitution detail: not available"
+        sub_dirs = substitution.get("directions", [])
+        sub_path_str = ", ".join(sub_dirs) if sub_dirs else "(no path available)"
+        changed_index = substitution.get("modified_index")
+        original_dir = substitution.get("original_direction")
+        new_dir = substitution.get("new_direction")
 
-            lines_invalid = [GENERAL_PROMPT, "", f"Proposed path: {sub_path_str}", detail_line, "", QUESTION]
-            text_path_invalid.write_text("\n".join(lines_invalid), encoding="utf-8")
+        text_path_invalid = destination_image_invalid.with_suffix(".txt")
+        if changed_index is not None:
+            detail_line = f"Substitution detail: index {changed_index}, {original_dir} -> {new_dir}"
+        else:
+            detail_line = "Substitution detail: not available"
+
+        lines_invalid = [GENERAL_PROMPT, "", f"Proposed path: {sub_path_str}"]
+        text_path_invalid.write_text("\n".join(lines_invalid), encoding="utf-8")
 
 
 def parse_args() -> argparse.Namespace:
