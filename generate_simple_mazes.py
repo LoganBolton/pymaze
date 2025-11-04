@@ -88,6 +88,58 @@ def compute_shortest_path(maze):
     }
 
 
+def build_incorrect_paths(shortest_path, direction_labels=("up", "down", "left", "right")):
+    directions = shortest_path["directions"]
+    numeric = shortest_path["directions_numeric"]
+    coords = shortest_path["coordinates"]
+
+    incorrect_paths = {
+        "substitution": None,
+        "addition": None,
+        "subtraction": None,
+    }
+
+    if directions:
+        import random
+
+        # substitution (direction, numeric)
+        idx = random.randrange(len(directions))
+        current_dir = directions[idx]
+        alternatives = [d for d in direction_labels if d != current_dir]
+        new_dir = random.choice(alternatives)
+        new_dirs = directions.copy()
+        new_dirs[idx] = new_dir
+
+        dir_to_numeric = {"up": 1, "down": 0, "left": 2, "right": 3}
+        new_numeric = numeric.copy()
+        new_numeric[idx] = dir_to_numeric[new_dir]
+        incorrect_paths["substitution"] = {
+            "modified_index": idx,
+            "original_direction": current_dir,
+            "new_direction": new_dir,
+            "directions": new_dirs,
+            "directions_numeric": new_numeric,
+        }
+
+        # addition
+        add_dir = random.choice(direction_labels)
+        incorrect_paths["addition"] = {
+            "added_direction": add_dir,
+            "directions": directions + [add_dir],
+            "directions_numeric": numeric + [dir_to_numeric[add_dir]],
+        }
+
+        # subtraction
+        if len(directions) > 1:
+            incorrect_paths["subtraction"] = {
+                "removed_direction": directions[-1],
+                "directions": directions[:-1],
+                "directions_numeric": numeric[:-1],
+            }
+
+    return incorrect_paths
+
+
 def run_generation():
     ensure_dir(OUTPUT_DIR)
 
@@ -191,8 +243,10 @@ def run_generation():
             "shortest_path_directions_numeric": shortest_path["directions_numeric"],
             "output_image": final_png_name,
             "output_image_with_path": path_image_name,
-            "generation_path": [list(step) for step in maze.generation_path],
+            "incorrect_paths": build_incorrect_paths(shortest_path),
         }
+
+        metadata["generation_path"] = [list(step) for step in maze.generation_path]
 
         metadata_path = os.path.join(maze_dir, "metadata.json")
         save_metadata(metadata_path, metadata)
