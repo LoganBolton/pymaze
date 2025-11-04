@@ -132,6 +132,24 @@ def run_generation():
 
             shortest_path = compute_shortest_path(maze)
 
+            path_image_name = None
+            path_coords = [tuple(coord) for coord in shortest_path["coordinates"]]
+            if len(path_coords) >= 2:
+                path_base_filename = os.path.join(maze_dir, f"{file_stem}_path")
+                manager.set_filename(path_base_filename)
+                manager.show_maze(
+                    maze.id,
+                    cell_size=cell_size,
+                    show_text=False,
+                    display=False,
+                    path_coords=path_coords,
+                    path_color="red",
+                    path_linewidth=1.5,
+                )
+                generated_path_image = f"{path_base_filename}_generation.png"
+                path_image_name = f"{file_stem}_path.png"
+                os.replace(generated_path_image, os.path.join(maze_dir, path_image_name))
+
             metadata = {
                 "maze_index": maze_index,
                 "generated_at": timestamp,
@@ -144,10 +162,12 @@ def run_generation():
                 "exit_coordinate": list(maze.exit_coor),
                 "generation_algorithm": "depth_first_recursive_backtracker",
                 "generation_path_length": len(maze.generation_path),
-                "shortest_path_coordinates": shortest_path["coordinates"],
                 "shortest_path_directions": shortest_path["directions"],
+                "shortest_path_length": len(shortest_path["coordinates"]),
+                "shortest_path_coordinates": shortest_path["coordinates"],
                 "shortest_path_directions_numeric": shortest_path["directions_numeric"],
                 "output_image": final_png_name,
+                "output_image_with_path": path_image_name,
                 "generation_path": [list(step) for step in maze.generation_path],
             }
 

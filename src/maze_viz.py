@@ -42,14 +42,17 @@ class Visualizer(object):
         """
         self.media_filename = filename
 
-    def show_maze(self, display=True):
-        """Displays a plot of the maze without the solution path"""
+    def show_maze(self, display=True, path_coords=None, path_color="red", path_linewidth=2):
+        """Displays a plot of the maze, optionally with a supplied path overlay."""
 
         # Create the plot figure and style the axes
         fig = self.configure_plot()
 
         # Plot the walls on the figure
         self.plot_walls()
+
+        if path_coords:
+            self._plot_path(path_coords, path_color, path_linewidth)
 
         # Handle any potential saving
         if self.media_filename:
@@ -218,6 +221,16 @@ class Visualizer(object):
                     y_start = cell_y - extend_top
                     y_end = cell_y + self.cell_size + extend_bottom
                     self.ax.plot([cell_x, cell_x], [y_start, y_end], **line_kwargs)
+
+    def _plot_path(self, path_coords, color, linewidth):
+        xs = []
+        ys = []
+        for row, col in path_coords:
+            xs.append(col * self.cell_size + self.cell_size / 2.0)
+            ys.append(row * self.cell_size + self.cell_size / 2.0)
+
+        if len(xs) >= 2:
+            self.ax.plot(xs, ys, color=color, linewidth=linewidth, solid_capstyle='round', solid_joinstyle='round', zorder=4)
 
     def configure_plot(self):
         """Sets the initial properties of the maze plot. Also creates the plot and axes"""

@@ -127,10 +127,11 @@ class MazeManager(object):
             solver = BreadthFirst(maze, neighbor_method, self.quiet_mode)
             maze.solution_path = solver.solve()
 
-    def show_maze(self, id, cell_size=1, show_text=True, display=True):
+    def show_maze(self, id, cell_size=1, show_text=True, display=True,
+                  path_coords=None, path_color="red", path_linewidth=2):
         """Just show the generation animation and maze"""
         vis = Visualizer(self.get_maze(id), cell_size, self.media_name, show_text)
-        vis.show_maze(display)
+        vis.show_maze(display, path_coords=path_coords, path_color=path_color, path_linewidth=path_linewidth)
 
     def show_generation_animation(self, id, cell_size=1):
         vis = Visualizer(self.get_maze(id), cell_size, self.media_name)
