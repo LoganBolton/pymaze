@@ -149,14 +149,14 @@ def run_generation():
 
     manager = MazeManager()
 
-    target_lengths = list(range(1, 8))
-    images_per_length = 7
+    target_lengths = list(range(3, 10))
+    images_per_length = 50
     counts = {length: 0 for length in target_lengths}
     seen_hashes = set()
 
     maze_index = 1
     attempts = 0
-    max_attempts = 100000
+    max_attempts = 1000000
 
     while any(counts[length] < images_per_length for length in target_lengths):
         attempts += 1
@@ -197,9 +197,9 @@ def run_generation():
         base_filename = os.path.join(maze_dir, file_stem)
         manager.set_filename(base_filename)
 
-        print(
-            f"Generating 3x3 maze {maze_index} (path length {path_steps}) -> {base_filename}_generation.png"
-        )
+        # print(
+        #     f"Generating 3x3 maze {maze_index} (path length {path_steps}) -> {base_filename}_generation.png"
+        # )
         manager.show_maze(maze.id, cell_size=cell_size, show_text=False, display=False)
 
         generated_path = f"{base_filename}_generation.png"
